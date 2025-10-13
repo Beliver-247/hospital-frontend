@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App-wide primitives */
+:root {
+  color-scheme: light;
+}
