@@ -1,35 +1,16 @@
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import ProtectedRoute from './routes/ProtectedRoute';
-import Login from './pages/Login';
-import PatientsNew from './pages/PatientsNew';
-import Dashboard from './pages/Dashboard';
-import './styles/index.css';
+import ProtectedRoute from './routes/ProtectedRoute.jsx';
+import AppLayout from './layout/AppLayout.jsx';
 
-const qc = new QueryClient({
-  defaultOptions: {
-    queries: { refetchOnWindowFocus: false, retry: 1 },
-    mutations: { retry: 0 },
-  },
-});
+import Login from './pages/Login.jsx';
+import Dashboard from './pages/Dashboard.jsx';
+import PatientsNew from './pages/PatientsNew.jsx';
+import PatientsDetail from './pages/PatientsDetail.jsx';
+import PatientsEdit from './pages/PatientsEdit.jsx';
+import PatientsSearch from './pages/PatientsSearch.jsx';
 
-function Shell({ children }) {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b bg-white">
-        <div className="max-w-6xl mx-auto p-4 flex items-center gap-4">
-          <Link to="/" className="font-semibold">Hospital</Link>
-          <nav className="text-sm text-gray-600 flex gap-4">
-            <Link to="/">Dashboard</Link>
-            <Link to="/patients/new">Create Patient</Link>
-          </nav>
-        </div>
-      </header>
-      <main className="max-w-6xl mx-auto p-4">{children}</main>
-    </div>
-  );
-}
+const qc = new QueryClient();
 
 export default function App() {
   return (
@@ -37,34 +18,56 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+
           <Route element={<ProtectedRoute />}>
             <Route
               path="/"
               element={
-                <Shell>
+                <AppLayout>
                   <Dashboard />
-                </Shell>
+                </AppLayout>
               }
             />
           </Route>
 
-          {/* Only DOCTOR or STAFF can access patient creation */}
-          <Route element={<ProtectedRoute roles={['DOCTOR', 'STAFF']} />}>
+          <Route element={<ProtectedRoute roles={['DOCTOR','STAFF']} />}>
             <Route
               path="/patients/new"
               element={
-                <Shell>
+                <AppLayout>
                   <PatientsNew />
-                </Shell>
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/patients"
+              element={
+                <AppLayout>
+                  <PatientsSearch />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/patients/:idOrPid"
+              element={
+                <AppLayout>
+                  <PatientsDetail />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/patients/:idOrPid/edit"
+              element={
+                <AppLayout>
+                  <PatientsEdit />
+                </AppLayout>
               }
             />
           </Route>
 
-          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
-      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }

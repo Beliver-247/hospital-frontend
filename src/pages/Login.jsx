@@ -1,75 +1,70 @@
-import { useForm } from 'react-hook-form';
-import { login, getSession } from '../api/auth';
-import { useNavigate, Navigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { login } from '../api/auth';
+import { useNavigate } from 'react-router-dom';
+
+const schema = z.object({
+  email: z.string().min(1, 'Email is required').email('Invalid email'),
+  password: z.string().min(1, 'Password is required'),
+});
 
 export default function Login() {
-  const nav = useNavigate();
-  const session = getSession();
-  const [serverError, setServerError] = useState(null);
-
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
-    defaultValues: { email: '', password: '' },
-  });
-
-  if (session?.token) return <Navigate to="/" replace />;
+  const navigate = useNavigate();
+  const [serverError, setServerError] = useState('');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({ resolver: zodResolver(schema), defaultValues: { email: '', password: '' } });
 
   const onSubmit = async (values) => {
-    setServerError(null);
+    setServerError('');
     try {
       await login(values);
-      nav('/', { replace: true });
+      navigate('/', { replace: true });
     } catch (e) {
-      setServerError(e?.message || 'Login failed');
+      setServerError(e?.response?.data?.message || 'Login failed');
     }
   };
 
   return (
-    <div className="min-h-screen grid place-items-center bg-gray-50 p-6">
+    <div className="min-h-screen grid place-items-center bg-gray-50 p-4">
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="w-full max-w-sm rounded-2xl border bg-white p-6 shadow-sm"
+        className="w-full max-w-md bg-white p-6 rounded-2xl border shadow-sm"
       >
-        <h1 className="text-xl font-semibold mb-1">Sign in</h1>
-        <p className="text-sm text-gray-600 mb-4">Use seeded users for dev:</p>
-        <ul className="text-xs text-gray-600 mb-4 space-y-1">
-          <li>DOCTOR: <code>doc@example.com / secret</code></li>
-          <li>STAFF: <code>staff@example.com / secret</code></li>
-          <li>PATIENT (blocked): <code>patient@example.com / secret</code></li>
-        </ul>
+        <h1 className="text-xl font-semibold">Sign in</h1>
+        <p className="text-sm text-gray-600 mt-1">Use seeded accounts (doc/staff/patient).</p>
 
         {serverError && (
-          <div className="mb-3 rounded-lg bg-red-50 text-red-700 text-sm p-2">
+          <div className="mt-3 rounded-md border border-red-200 bg-red-50 text-red-800 px-3 py-2 text-sm">
             {serverError}
           </div>
         )}
 
-        <label className="block mb-2">
-          <span className="text-sm">Email</span>
-          <input
-            type="email"
-            className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:ring"
-            {...register('email', { required: 'Email is required' })}
-            autoComplete="username"
-          />
-          {errors.email && <span className="text-xs text-red-600">{errors.email.message}</span>}
-        </label>
+        <label className="block mt-5 text-sm font-medium">Email</label>
+        <input
+          type="email"
+          className="mt-1 w-full rounded-md border px-3 py-2 outline-none focus:ring-2 ring-gray-900"
+          placeholder="doc@example.com"
+          {...register('email')}
+        />
+        {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email.message}</p>}
 
-        <label className="block mb-4">
-          <span className="text-sm">Password</span>
-          <input
-            type="password"
-            className="mt-1 w-full rounded-lg border px-3 py-2 outline-none focus:ring"
-            {...register('password', { required: 'Password is required' })}
-            autoComplete="current-password"
-          />
-          {errors.password && <span className="text-xs text-red-600">{errors.password.message}</span>}
-        </label>
+        <label className="block mt-4 text-sm font-medium">Password</label>
+        <input
+          type="password"
+          className="mt-1 w-full rounded-md border px-3 py-2 outline-none focus:ring-2 ring-gray-900"
+          placeholder="secret"
+          {...register('password')}
+        />
+        {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>}
 
         <button
-          type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-lg bg-gray-900 text-white py-2.5 font-medium disabled:opacity-60"
+          className="mt-6 w-full rounded-md bg-gray-900 text-white py-2.5 font-medium disabled:opacity-50"
         >
           {isSubmitting ? 'Signing in…' : 'Sign in'}
         </button>
