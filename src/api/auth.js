@@ -1,21 +1,17 @@
-import client, { clearAuth } from './client';
+import client, { authStorage } from './client';
 
 export async function login({ email, password }) {
   const { data } = await client.post('/auth/login', { email, password });
-  // Expect: { token, user: { id, email, role, name } }
-  localStorage.setItem('auth', JSON.stringify(data));
+  // { token, user: { id, email, role, name } }
+  authStorage.set(data);
   return data;
 }
 
-export function logout() {
-  clearAuth();
-  window.location.replace('/login');
+export function getCurrentUser() {
+  return authStorage.get()?.user || null;
 }
 
-export function getSession() {
-  try {
-    return JSON.parse(localStorage.getItem('auth')) || null;
-  } catch {
-    return null;
-  }
+export function logout() {
+  authStorage.clear();
+  location.replace('/login');
 }
