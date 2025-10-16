@@ -9,6 +9,9 @@ import PatientsNew from './pages/PatientsNew.jsx';
 import PatientsDetail from './pages/PatientsDetail.jsx';
 import PatientsEdit from './pages/PatientsEdit.jsx';
 import PatientsSearch from './pages/PatientsSearch.jsx';
+import ReportsLayout from './layout/ReportsLayout.jsx';
+import Reports from './pages/Reports.jsx';
+import ReportHistory from './pages/ReportHistory.jsx';
 
 const qc = new QueryClient();
 
@@ -61,6 +64,22 @@ export default function App() {
                 <AppLayout>
                   <PatientsEdit />
                 </AppLayout>
+              }
+            />
+            <Route
+              path="/reports"
+              element={
+                <ReportsLayout>
+                  <Reports />
+                </ReportsLayout>
+              }
+            />
+            <Route
+              path="/reports/history"
+              element={
+                <ReportsLayout>
+                  <ReportHistory />
+                </ReportsLayout>
               }
             />
           </Route>
