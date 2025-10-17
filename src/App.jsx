@@ -9,6 +9,10 @@ import PatientsNew from './pages/PatientsNew.jsx';
 import PatientsDetail from './pages/PatientsDetail.jsx';
 import PatientsEdit from './pages/PatientsEdit.jsx';
 import PatientsSearch from './pages/PatientsSearch.jsx';
+import Payments from './pages/Payments/Payments.jsx';
+import CreditCardPayment from './pages/Payments/CreditCardPayment.jsx';
+import InsurancePayment from './pages/Payments/InsurancePayment.jsx';
+import HospitalSelection from './pages/HospitalSelection.jsx';
 
 const qc = new QueryClient();
 
@@ -40,6 +44,14 @@ export default function App() {
               }
             />
             <Route
+              path="/hospital-selection"
+              element={
+                <AppLayout>
+                  <HospitalSelection />
+                </AppLayout>
+              }
+            />
+            <Route
               path="/patients"
               element={
                 <AppLayout>
@@ -60,6 +72,30 @@ export default function App() {
               element={
                 <AppLayout>
                   <PatientsEdit />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/billing"
+              element={
+                <AppLayout>
+                  <Payments />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/billing/credit-card"
+              element={
+                <AppLayout>
+                  <CreditCardPayment />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/billing/insurance"
+              element={
+                <AppLayout>
+                  <InsurancePayment />
                 </AppLayout>
               }
             />
