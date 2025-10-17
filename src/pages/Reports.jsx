@@ -12,9 +12,40 @@ export default function Reports() {
     gender: '',
     ageRange: { min: '', max: '' },
     includeDocuments: false,
-    format: 'pdf',
-    hasDocuments: ''
+    format: 'json',
+    hasDocuments: '',
+    startDate: '',
+    endDate: ''
   });
+
+  useEffect(() => {
+    // Set default date range based on selected period
+    const today = new Date();
+    let startDate = new Date();
+    
+    switch (reportParams.dataPeriod) {
+      case 'last_7_days':
+        startDate.setDate(today.getDate() - 7);
+        break;
+      case 'last_30_days':
+        startDate.setDate(today.getDate() - 30);
+        break;
+      case 'last_90_days':
+        startDate.setDate(today.getDate() - 90);
+        break;
+      case 'custom':
+        // Keep existing custom dates
+        return;
+      default:
+        startDate.setDate(today.getDate() - 7);
+    }
+    
+    setReportParams(prev => ({
+      ...prev,
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: today.toISOString().split('T')[0]
+    }));
+  }, [reportParams.dataPeriod]);
 
   useEffect(() => {
     if (generating) {
@@ -37,51 +68,70 @@ export default function Reports() {
     setProgress(0);
     
     try {
+      // Build query parameters
       const queryParams = new URLSearchParams({
         type: reportParams.reportType,
-        format: reportParams.format === 'excel' ? 'csv' : 'json',
+        format: reportParams.format === 'excel' ? 'csv' : reportParams.format,
         includeDocuments: reportParams.includeDocuments.toString()
       });
 
+      // Add filters
       if (reportParams.gender) queryParams.append('gender', reportParams.gender);
-      if (reportParams.ageRange.min) queryParams.append('ageRange[min]', reportParams.ageRange.min);
-      if (reportParams.ageRange.max) queryParams.append('ageRange[max]', reportParams.ageRange.max);
+      if (reportParams.ageRange.min || reportParams.ageRange.max) {
+        queryParams.append('ageRange', `${reportParams.ageRange.min || '0'}-${reportParams.ageRange.max || '100'}`);
+      }
       if (reportParams.hasDocuments) queryParams.append('hasDocuments', reportParams.hasDocuments);
+      if (reportParams.startDate) queryParams.append('startDate', reportParams.startDate);
+      if (reportParams.endDate) queryParams.append('endDate', reportParams.endDate);
 
-      const response = await fetch(`http://localhost:4000/api/reports/generate?${queryParams}`);
+      console.log('Request URL:', `http://localhost:4000/api/reports/generate?${queryParams.toString()}`);
+
+      const response = await fetch(`http://localhost:4000/api/reports/generate?${queryParams.toString()}`);
       
-      if (reportParams.format === 'excel' || reportParams.format === 'csv') {
-        // Download the file
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Handle different formats
+      if (reportParams.format === 'csv') {
+        // Download CSV file
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `patients_report_${Date.now()}.${reportParams.format === 'excel' ? 'xlsx' : 'csv'}`;
+        a.download = `patients_report_${Date.now()}.csv`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
       } else if (reportParams.format === 'pdf') {
-        // For PDF, we'll generate it on the client side
+        // For PDF, get JSON data first then generate PDF
         const data = await response.json();
-        setReportData(data.data);
-        generatePDF(data.data);
+        if (data.success) {
+          setReportData(data.data);
+          generatePDF(data.data);
+        } else {
+          throw new Error(data.message || 'Failed to generate report');
+        }
       } else {
+        // JSON format
         const data = await response.json();
-        setReportData(data.data);
-        // Display JSON data
-        console.log('Report data:', data.data);
+        if (data.success) {
+          setReportData(data.data);
+          console.log('Report data:', data.data);
+        } else {
+          throw new Error(data.message || 'Failed to generate report');
+        }
       }
     } catch (error) {
       console.error('Failed to generate report:', error);
-      alert('Failed to generate report. Please try again.');
+      alert(`Failed to generate report: ${error.message}`);
     } finally {
       setGenerating(false);
     }
   };
 
   const generatePDF = (data) => {
-    // Simple PDF generation using window.print() and CSS
     const printWindow = window.open('', '_blank');
     const patients = data.data || [];
     
@@ -93,11 +143,13 @@ export default function Reports() {
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; }
           .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-          .summary { margin-bottom: 20px; }
+          .summary { margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+          .filters { margin-bottom: 20px; padding: 15px; background: #f0f8ff; border-radius: 5px; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
           th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
           th { background-color: #f5f5f5; }
           .footer { margin-top: 30px; text-align: center; font-size: 12px; color: #666; }
+          .filter-item { margin: 5px 0; }
         </style>
       </head>
       <body>
@@ -107,9 +159,18 @@ export default function Reports() {
         </div>
         
         <div class="summary">
-          <p><strong>Total Patients:</strong> ${data.totalPatients}</p>
-          <p><strong>Report Type:</strong> ${data.reportType}</p>
-          <p><strong>Generated At:</strong> ${new Date(data.generatedAt).toLocaleString()}</p>
+          <h3>Report Summary</h3>
+          <p><strong>Total Patients:</strong> ${data.totalPatients || 0}</p>
+          <p><strong>Report Type:</strong> ${data.reportType || 'patients_list'}</p>
+          <p><strong>Generated At:</strong> ${new Date(data.generatedAt || new Date()).toLocaleString()}</p>
+        </div>
+
+        <div class="filters">
+          <h3>Applied Filters</h3>
+          <div class="filter-item"><strong>Gender:</strong> ${reportParams.gender || 'All'}</div>
+          <div class="filter-item"><strong>Age Range:</strong> ${reportParams.ageRange.min || 'Any'} - ${reportParams.ageRange.max || 'Any'}</div>
+          <div class="filter-item"><strong>Date Range:</strong> ${reportParams.startDate} to ${reportParams.endDate}</div>
+          <div class="filter-item"><strong>Documents:</strong> ${reportParams.hasDocuments ? (reportParams.hasDocuments === 'true' ? 'With Documents' : 'Without Documents') : 'All'}</div>
         </div>
 
         <table>
@@ -120,20 +181,27 @@ export default function Reports() {
               <th>Age</th>
               <th>Gender</th>
               <th>Contact</th>
-              <th>Conditions</th>
+              <th>Medical Conditions</th>
+              <th>Created Date</th>
             </tr>
           </thead>
           <tbody>
             ${patients.map(patient => `
               <tr>
-                <td>${patient.patientId}</td>
-                <td>${patient.personal.firstName} ${patient.personal.lastName}</td>
-                <td>${patient.personal.age || 'N/A'}</td>
-                <td>${patient.personal.gender}</td>
-                <td>${patient.contact.phone}<br/>${patient.contact.email}</td>
-                <td>${patient.medical.conditions.join(', ') || 'None'}</td>
+                <td>${patient.patientId || 'N/A'}</td>
+                <td>${patient.personal?.firstName || ''} ${patient.personal?.lastName || ''}</td>
+                <td>${patient.personal?.age || 'N/A'}</td>
+                <td>${patient.personal?.gender || 'N/A'}</td>
+                <td>${patient.contact?.phone || 'N/A'}<br/>${patient.contact?.email || 'N/A'}</td>
+                <td>${(patient.medical?.conditions || []).join(', ') || 'None'}</td>
+                <td>${patient.createdAt ? new Date(patient.createdAt).toLocaleDateString() : 'N/A'}</td>
               </tr>
             `).join('')}
+            ${patients.length === 0 ? `
+              <tr>
+                <td colspan="7" style="text-align: center;">No patients found with the selected filters</td>
+              </tr>
+            ` : ''}
           </tbody>
         </table>
 
@@ -151,10 +219,25 @@ export default function Reports() {
 
   const getFilteredPatientCount = () => {
     // This would ideally come from the API, but for now we'll estimate
-    let baseCount = 2847; // Default from your data
+    let baseCount = 2847;
     if (reportParams.gender) baseCount = Math.round(baseCount * 0.4);
     if (reportParams.ageRange.min || reportParams.ageRange.max) baseCount = Math.round(baseCount * 0.6);
+    if (reportParams.startDate && reportParams.endDate) baseCount = Math.round(baseCount * 0.3);
+    if (reportParams.hasDocuments) baseCount = Math.round(baseCount * 0.5);
     return baseCount;
+  };
+
+  const formatDateRange = () => {
+    if (reportParams.dataPeriod === 'custom') {
+      return `${reportParams.startDate} to ${reportParams.endDate}`;
+    }
+    
+    const periods = {
+      'last_7_days': 'Last 7 days',
+      'last_30_days': 'Last 30 days',
+      'last_90_days': 'Last 90 days'
+    };
+    return periods[reportParams.dataPeriod] || 'Last 7 days';
   };
 
   return (
@@ -200,11 +283,35 @@ export default function Reports() {
                   onChange={(e) => setReportParams(prev => ({ ...prev, reportType: e.target.value }))}
                 >
                   <option value="patients_list">Patient List</option>
-                  <option value="patient_summary">Patient Summary</option>
-                  <option value="medical_conditions">Medical Conditions</option>
+                  <option value="appointments_list">Appointments List</option>
+                  <option value="appointments_stats">Appointments Statistics</option>
                 </select>
               </div>
             </div>
+
+            {/* Custom Date Range */}
+            {reportParams.dataPeriod === 'custom' && (
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={reportParams.startDate}
+                    onChange={(e) => setReportParams(prev => ({ ...prev, startDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                  <input
+                    type="date"
+                    className="w-full border rounded-lg px-3 py-2"
+                    value={reportParams.endDate}
+                    onChange={(e) => setReportParams(prev => ({ ...prev, endDate: e.target.value }))}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Additional Filters */}
             <div className="space-y-4">
@@ -238,6 +345,8 @@ export default function Reports() {
                       ...prev,
                       ageRange: { ...prev.ageRange, min: e.target.value }
                     }))}
+                    min="0"
+                    max="120"
                   />
                   <input
                     type="number"
@@ -248,6 +357,8 @@ export default function Reports() {
                       ...prev,
                       ageRange: { ...prev.ageRange, max: e.target.value }
                     }))}
+                    min="0"
+                    max="120"
                   />
                 </div>
               </div>
@@ -270,7 +381,7 @@ export default function Reports() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
                 <div className="flex gap-4">
-                  {['pdf', 'excel', 'csv', 'json'].map(format => (
+                  {['json', 'csv', 'pdf'].map(format => (
                     <label key={format} className="flex items-center space-x-2">
                       <input
                         type="radio"
@@ -280,7 +391,7 @@ export default function Reports() {
                         onChange={(e) => setReportParams(prev => ({ ...prev, format: e.target.value }))}
                         className="text-blue-600"
                       />
-                      <span className="text-sm capitalize">{format}</span>
+                      <span className="text-sm capitalize">{format.toUpperCase()}</span>
                     </label>
                   ))}
                 </div>
@@ -343,7 +454,15 @@ export default function Reports() {
           {/* Report Preview */}
           {reportData && reportParams.format === 'json' && (
             <div className="bg-white rounded-lg border p-6">
-              <h3 className="text-lg font-semibold mb-4">Report Preview</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Report Preview</h3>
+                <button
+                  onClick={() => navigator.clipboard.writeText(JSON.stringify(reportData, null, 2))}
+                  className="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded"
+                >
+                  Copy JSON
+                </button>
+              </div>
               <div className="bg-gray-50 p-4 rounded-lg">
                 <pre className="text-sm overflow-auto max-h-96">
                   {JSON.stringify(reportData, null, 2)}
@@ -361,11 +480,11 @@ export default function Reports() {
             <div className="space-y-3 text-sm">
               <div>
                 <div className="text-gray-500">Report Type</div>
-                <div className="font-medium capitalize">{reportParams.reportType.replace('_', ' ')}</div>
+                <div className="font-medium capitalize">{reportParams.reportType.replace(/_/g, ' ')}</div>
               </div>
               <div>
                 <div className="text-gray-500">Data Range</div>
-                <div className="font-medium">Last 7 days</div>
+                <div className="font-medium">{formatDateRange()}</div>
               </div>
               <div>
                 <div className="text-gray-500">Gender</div>
@@ -378,6 +497,13 @@ export default function Reports() {
                     ? `${reportParams.ageRange.min || 'Any'} - ${reportParams.ageRange.max || 'Any'}`
                     : 'All ages'
                   }
+                </div>
+              </div>
+              <div>
+                <div className="text-gray-500">Document Status</div>
+                <div className="font-medium">
+                  {reportParams.hasDocuments === 'true' ? 'With Documents' : 
+                   reportParams.hasDocuments === 'false' ? 'Without Documents' : 'All'}
                 </div>
               </div>
               <div>
