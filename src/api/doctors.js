@@ -20,3 +20,25 @@ export async function deleteDoctor(id) {
   // { deletedCount: number }
   return data;
 }
+
+export const DOCTOR_TYPES = [
+  "Cardiologist",
+  "Pediatric",
+  "Dermatologist",
+  "Orthopedic",
+  "Neurologist",
+  "Opthalmologist", // note: model uses 'Opthalmologist' (typo) – keep as-is
+  "Outpatient Department (OPD)",
+];
+
+/**
+ * Fetch doctors filtered by type.
+ * Backend suggestion: GET /users?role=DOCTOR&doctorType=<type>
+ * Return shape can be either {items: [...] } or [...] – we normalize.
+ */
+export async function listDoctorsByType(doctorType) {
+  const { data } = await client.get("/users", {
+    params: { role: "DOCTOR", doctorType },
+  });
+  return Array.isArray(data) ? data : data.items || [];
+}
