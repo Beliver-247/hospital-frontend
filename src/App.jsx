@@ -15,6 +15,12 @@ import ReportHistory from "./pages/ReportHistory.jsx";
 import DoctorsNew from "./pages/DoctorsNew.jsx";
 import DoctorsList from "./pages/DoctorsList.jsx";
 
+import PatientDash from "./pages/Patient-Dash.jsx";
+import Schedule from "./pages/Schedule.jsx";
+import MyAppointments from "./pages/MyAppointments.jsx";
+import AppointmentDetails from "./pages/AppointmentDetails.jsx";
+import PatientLayout from "./layout/PatientLayout.jsx";
+
 const qc = new QueryClient();
 
 export default function App() {
@@ -33,6 +39,19 @@ export default function App() {
                 </AppLayout>
               }
             />
+          </Route>
+
+          {/* Protected (patient-only) */}
+          <Route element={<ProtectedRoute roles={["PATIENT"]} />}>
+            <Route element={<PatientLayout />}>
+              <Route path="/PatientDash" element={<PatientDash />} />
+              <Route path="/schedule" element={<Schedule />} />
+              <Route path="/appointments" element={<MyAppointments />} />
+              <Route
+                path="/appointments/:id"
+                element={<AppointmentDetails />}
+              />
+            </Route>
           </Route>
 
           <Route element={<ProtectedRoute roles={["STAFF"]} />}>

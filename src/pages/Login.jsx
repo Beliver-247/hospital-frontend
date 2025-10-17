@@ -22,8 +22,12 @@ export default function Login() {
   const onSubmit = async (values) => {
     setServerError('');
     try {
-      await login(values);
-      navigate('/', { replace: true });
+      const data = await login(values);
+      const role = data?.user?.role;
+
+      // role-based redirect
+      if (role === 'PATIENT') navigate('/PatientDash', { replace: true });
+      else navigate('/', { replace: true });
     } catch (e) {
       setServerError(e?.response?.data?.message || 'Login failed');
     }
