@@ -32,17 +32,13 @@ function Badge({ children, color = 'green' }) {
   return <span className={"inline-block text-xs px-2 py-1 rounded-full mr-2 " + (colorMap[color] || colorMap.green)}>{children}</span>;
 }
 
-export default function HospitalSelection() {
+export default function HospitalSelection({ onChoose }) {
   const [selected, setSelected] = useState('government');
-  const navigate = useNavigate();
 
   function handleContinue() {
-    if (selected === 'private') {
-      // navigate to billing and default to cash payment method
-      navigate('/billing', { state: { defaultMethod: 'cash' } });
-    } else {
-      // for government, just alert or navigate somewhere else
-      navigate('/');
+    if (onChoose) {
+      // pass the selection back to parent (Payments) which will advance the flow
+      onChoose(selected);
     }
   }
 

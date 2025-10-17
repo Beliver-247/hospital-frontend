@@ -12,7 +12,6 @@ import PatientsSearch from './pages/PatientsSearch.jsx';
 import Payments from './pages/Payments/Payments.jsx';
 import CreditCardPayment from './pages/Payments/CreditCardPayment.jsx';
 import InsurancePayment from './pages/Payments/InsurancePayment.jsx';
-import HospitalSelection from './pages/HospitalSelection.jsx';
 
 const qc = new QueryClient();
 
@@ -43,14 +42,7 @@ export default function App() {
                 </AppLayout>
               }
             />
-            <Route
-              path="/hospital-selection"
-              element={
-                <AppLayout>
-                  <HospitalSelection />
-                </AppLayout>
-              }
-            />
+            {/* Hospital selection is now part of the Billing flow */}
             <Route
               path="/patients"
               element={

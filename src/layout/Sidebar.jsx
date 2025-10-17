@@ -5,7 +5,6 @@ const navItem = (to, label, icon = null, requireRole) => ({ to, label, icon, req
 
 const items = [
   navItem('/', 'Dashboard'),
-  navItem('/hospital-selection', 'Hospital Selection'),
   navItem('/billing', 'Billing'),
   navItem('/patients/new', 'Create Patient', null, ['DOCTOR','STAFF']),
   navItem('/patients', 'Patients', null, ['DOCTOR','STAFF']),

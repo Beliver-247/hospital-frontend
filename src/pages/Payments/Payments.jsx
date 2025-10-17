@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import HospitalSelection from '../HospitalSelection.jsx';
 
 function Icon({ name }) {
   if (name === 'card')
@@ -52,6 +53,7 @@ export default function Payments() {
   const defaultMethod = location.state?.defaultMethod;
 
   const [selected, setSelected] = useState(defaultMethod || null);
+  const [showHospitalStep, setShowHospitalStep] = useState(Boolean(!defaultMethod));
 
   useEffect(() => {
     if (defaultMethod) setSelected(defaultMethod);
@@ -73,9 +75,22 @@ export default function Payments() {
     }
   }
 
+  function handleHospitalChoose(choice) {
+    // If private, default to cash and proceed to payment selection
+    if (choice === 'private') {
+      setSelected('cash');
+    }
+    setShowHospitalStep(false);
+  }
+
   return (
     <div className="p-6">
-      <div className="bg-white rounded-lg shadow p-6">
+      {showHospitalStep ? (
+        <div className="bg-white rounded-lg shadow p-6">
+          <HospitalSelection onChoose={handleHospitalChoose} />
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow p-6">
         <h1 className="text-2xl font-semibold text-center">Choose Payment Method</h1>
         <p className="text-center text-gray-500 mt-1">Select your preferred payment method to complete the transaction</p>
 
@@ -100,7 +115,7 @@ export default function Payments() {
           <button onClick={handleContinue} className="ml-auto px-4 py-2 bg-emerald-600 text-white rounded">Select Payment Method →</button>
         </div>
       </div>
-
+  )}
       <div className="mt-6 bg-white rounded-lg shadow p-4 max-w-2xl">
         <div className="font-medium mb-2">Payment Summary</div>
         <div className="divide-y">
