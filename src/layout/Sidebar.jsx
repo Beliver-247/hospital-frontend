@@ -5,6 +5,7 @@ const navItem = (to, label, icon = null, requireRole) => ({ to, label, icon, req
 
 const items = [
   navItem('/', 'Dashboard'),
+  navItem('/billing', 'Billing'),
   navItem('/patients/new', 'Create Patient', null, ['DOCTOR','STAFF']),
   navItem('/patients', 'Patients', null, ['DOCTOR','STAFF']),
   // placeholders to mirror left menu

@@ -2,7 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import AppLayout from "./layout/AppLayout.jsx";
-
+import Payments from './pages/Payments/Payments.jsx';
+import CreditCardPayment from './pages/Payments/CreditCardPayment.jsx';
+import InsurancePayment from './pages/Payments/InsurancePayment.jsx';
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import PatientsNew from "./pages/PatientsNew.jsx";
@@ -14,7 +16,6 @@ import Reports from "./pages/Reports.jsx";
 import ReportHistory from "./pages/ReportHistory.jsx";
 import DoctorsNew from "./pages/DoctorsNew.jsx";
 import DoctorsList from "./pages/DoctorsList.jsx";
-
 import PatientDash from "./pages/Patient-Dash.jsx";
 import Schedule from "./pages/Schedule.jsx";
 import MyAppointments from "./pages/MyAppointments.jsx";
@@ -82,6 +83,7 @@ export default function App() {
                 </AppLayout>
               }
             />
+            {/* Hospital selection is now part of the Billing flow */}
             <Route
               path="/patients"
               element={
@@ -103,6 +105,30 @@ export default function App() {
               element={
                 <AppLayout>
                   <PatientsEdit />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/billing"
+              element={
+                <AppLayout>
+                  <Payments />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/billing/credit-card"
+              element={
+                <AppLayout>
+                  <CreditCardPayment />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/billing/insurance"
+              element={
+                <AppLayout>
+                  <InsurancePayment />
                 </AppLayout>
               }
             />
