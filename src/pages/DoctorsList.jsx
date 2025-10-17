@@ -16,8 +16,9 @@ export default function DoctorsList() {
 
   const delMut = useMutation({
     mutationFn: deleteDoctor,
-    onSuccess: () => {
-      setToast({ kind: 'success', msg: 'Doctor deleted' });
+    onSuccess: (res) => {
+      const ok = res?.deletedCount > 0;
+      setToast({ kind: ok ? 'success' : 'error', msg: ok ? 'Doctor deleted' : 'No doctor deleted' });
       qc.invalidateQueries({ queryKey: ['doctors'] });
     },
     onError: (e) => setToast({ kind: 'error', msg: e?.response?.data?.message || 'Delete failed' }),
@@ -55,18 +56,19 @@ export default function DoctorsList() {
             <tr className="text-left text-gray-500 border-b">
               <th className="p-3">Name</th>
               <th className="p-3">Email</th>
+              <th className="p-3">Type</th>
               <th className="p-3">ID</th>
               <th className="p-3 w-32"></th>
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
-              <tr><td className="p-3" colSpan={4}>Loading…</td></tr>
-            )}
+            {isLoading && <tr><td className="p-3" colSpan={5}>Loading…</td></tr>}
+
             {data?.items?.map((d) => (
               <tr key={d.id || d._id} className="border-b last:border-0">
                 <td className="p-3 font-medium">{d.name}</td>
                 <td className="p-3">{d.email}</td>
+                <td className="p-3">{d.doctorType || '—'}</td>
                 <td className="p-3">{d.id || d._id}</td>
                 <td className="p-3 text-right">
                   <button
@@ -79,8 +81,9 @@ export default function DoctorsList() {
                 </td>
               </tr>
             ))}
+
             {!isLoading && !data?.items?.length && (
-              <tr><td className="p-3 text-gray-600" colSpan={4}>No doctors found.</td></tr>
+              <tr><td className="p-3 text-gray-600" colSpan={5}>No doctors found.</td></tr>
             )}
           </tbody>
         </table>

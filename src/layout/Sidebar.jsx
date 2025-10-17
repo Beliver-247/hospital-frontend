@@ -13,7 +13,7 @@ const items = [
   navItem('/_records', 'Records'),
   navItem('/_pharmacy', 'Pharmacy'),
   navItem('/_lab', 'Lab Results'),
-  navItem('/_reports', 'Reports'),
+  navItem('/reports', 'Reports', null, ['DOCTOR','STAFF']),
 ];
 
 export default function Sidebar() {
