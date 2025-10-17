@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ProtectedRoute from "./routes/ProtectedRoute.jsx";
 import AppLayout from "./layout/AppLayout.jsx";
-
 import Payments from './pages/Payments/Payments.jsx';
 import CreditCardPayment from './pages/Payments/CreditCardPayment.jsx';
 import InsurancePayment from './pages/Payments/InsurancePayment.jsx';
@@ -17,7 +16,6 @@ import Reports from "./pages/Reports.jsx";
 import ReportHistory from "./pages/ReportHistory.jsx";
 import DoctorsNew from "./pages/DoctorsNew.jsx";
 import DoctorsList from "./pages/DoctorsList.jsx";
-
 import PatientDash from "./pages/Patient-Dash.jsx";
 import Schedule from "./pages/Schedule.jsx";
 import MyAppointments from "./pages/MyAppointments.jsx";
