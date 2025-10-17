@@ -9,6 +9,7 @@ const items = [
   navItem('/patients', 'Patients', null, ['DOCTOR','STAFF']),
   // placeholders to mirror left menu
   navItem('/_appointments', 'Appointments'),
+  navItem('/doctors', 'Doctors', null, ['STAFF']),
   navItem('/_records', 'Records'),
   navItem('/_pharmacy', 'Pharmacy'),
   navItem('/_lab', 'Lab Results'),
