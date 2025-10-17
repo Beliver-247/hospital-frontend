@@ -1,55 +1,127 @@
 // src/pages/ReportHistory.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function ReportHistory() {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     type: 'all',
     status: 'all',
-    date: ''
+    date: '',
+    search: ''
+  });
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalReports: 0,
+    hasNext: false,
+    hasPrev: false
   });
 
-  const reports = [
-    {
-      id: 'RPT-2024-001',
-      type: 'Patient Summary',
-      generatedAt: 'Jan 15, 2024 09:30 AM',
-      recordCount: 1347,
-      status: 'completed',
-      size: '2.4 MB'
-    },
-    {
-      id: 'RPT-2024-002',
-      type: 'Billing Reports',
-      generatedAt: 'Jan 15, 2024 11:45 AM',
-      recordCount: 19,
-      status: 'completed',
-      size: '0.8 MB'
-    },
-    {
-      id: 'RPT-2024-003',
-      type: 'Inventory Summary',
-      generatedAt: 'Jan 16, 2024 08:15 AM',
-      recordCount: 426,
-      status: 'completed',
-      size: '1.2 MB'
-    },
-    {
-      id: 'RPT-2024-004',
-      type: 'Rating Reports',
-      generatedAt: 'Jan 16, 2024 02:30 PM',
-      recordCount: 2369,
-      status: 'processing',
-      size: '3.1 MB'
-    },
-    {
-      id: 'RPT-2024-005',
-      type: 'Patient List',
-      generatedAt: 'Jan 14, 2024 10:20 AM',
-      recordCount: 749,
-      status: 'completed',
-      size: '1.8 MB'
+  // Fetch reports from API
+  const fetchReports = async (page = 1) => {
+    try {
+      setLoading(true);
+      
+      const queryParams = new URLSearchParams({
+        type: filters.type,
+        status: filters.status,
+        page: page,
+        limit: 10
+      });
+
+      if (filters.date) queryParams.append('date', filters.date);
+      if (filters.search) queryParams.append('search', filters.search);
+
+      const response = await fetch(`http://localhost:4000/api/reports/history?${queryParams}`);
+      const result = await response.json();
+
+      if (result.success) {
+        setReports(result.data.reports);
+        setPagination(result.data.pagination);
+      } else {
+        console.error('Failed to fetch reports:', result.message);
+      }
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Initial load and when filters change
+  useEffect(() => {
+    fetchReports(1);
+  }, [filters]);
+
+  // Handle download
+  const handleDownload = async (reportId, format = 'json') => {
+    try {
+      const response = await fetch(`http://localhost:4000/api/reports/${reportId}/download?format=${format}`);
+      const blob = await response.blob();
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Extract filename from Content-Disposition header or generate one
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `report_${reportId}.${format}`;
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Download failed. Please try again.');
+    }
+  };
+
+  // Handle delete
+  const handleDelete = async (reportId) => {
+    if (!window.confirm('Are you sure you want to delete this report?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:4000/api/reports/${reportId}`, {
+        method: 'DELETE'
+      });
+      const result = await response.json();
+
+      if (result.success) {
+        // Refresh the list
+        fetchReports(pagination.currentPage);
+        alert('Report deleted successfully');
+      } else {
+        alert('Failed to delete report');
+      }
+    } catch (error) {
+      console.error('Delete failed:', error);
+      alert('Delete failed. Please try again.');
+    }
+  };
+
+  // Handle view (open in new tab/modal)
+  const handleView = (reportId) => {
+    window.open(`/reports/${reportId}`, '_blank');
+  };
+
+  // Handle pagination
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      fetchReports(newPage);
+    }
+  };
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -63,6 +135,16 @@ export default function ReportHistory() {
       </span>
     );
   };
+
+  if (loading && reports.length === 0) {
+    return (
+      <div className="p-6">
+        <div className="flex justify-center items-center h-64">
+          <div className="text-lg text-gray-600">Loading reports...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -83,10 +165,9 @@ export default function ReportHistory() {
               onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
             >
               <option value="all">All Types</option>
-              <option value="patient_summary">Patient Summary</option>
-              <option value="billing">Billing Reports</option>
-              <option value="inventory">Inventory Summary</option>
-              <option value="rating">Rating Reports</option>
+              <option value="patients_list">Patient List</option>
+              <option value="appointments_list">Appointments List</option>
+              <option value="appointments_stats">Appointments Statistics</option>
             </select>
           </div>
 
@@ -114,10 +195,24 @@ export default function ReportHistory() {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+            <input
+              type="text"
+              placeholder="Search by report ID..."
+              className="border rounded-lg px-3 py-2 text-sm"
+              value={filters.search}
+              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+            />
+          </div>
+
           <div className="flex-1"></div>
 
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 self-end">
-            Export All
+          <button 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 self-end"
+            onClick={() => fetchReports(1)}
+          >
+            Refresh
           </button>
         </div>
       </div>
@@ -144,6 +239,9 @@ export default function ReportHistory() {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Size
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -152,13 +250,13 @@ export default function ReportHistory() {
               {reports.map((report) => (
                 <tr key={report.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {report.id}
+                    {report.reportId}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {report.type}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {report.generatedAt}
+                    {new Date(report.generatedAt).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {report.recordCount.toLocaleString()}
@@ -167,10 +265,34 @@ export default function ReportHistory() {
                     {getStatusBadge(report.status)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {report.size}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex items-center gap-2">
-                      <button className="text-blue-600 hover:text-blue-800">Download</button>
-                      <button className="text-gray-600 hover:text-gray-800">View</button>
-                      <button className="text-red-600 hover:text-red-800">Delete</button>
+                      <button 
+                        className="text-blue-600 hover:text-blue-800"
+                        onClick={() => handleDownload(report.id, 'json')}
+                      >
+                        JSON
+                      </button>
+                      <button 
+                        className="text-green-600 hover:text-green-800"
+                        onClick={() => handleDownload(report.id, 'csv')}
+                      >
+                        CSV
+                      </button>
+                      <button 
+                        className="text-gray-600 hover:text-gray-800"
+                        onClick={() => handleView(report.id)}
+                      >
+                        View
+                      </button>
+                      <button 
+                        className="text-red-600 hover:text-red-800"
+                        onClick={() => handleDelete(report.id)}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -179,20 +301,59 @@ export default function ReportHistory() {
           </table>
         </div>
 
+        {/* Empty State */}
+        {reports.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <div className="text-gray-500 text-lg">No reports found</div>
+            <div className="text-gray-400 text-sm mt-2">
+              {Object.values(filters).some(val => val && val !== 'all') 
+                ? 'Try adjusting your filters' 
+                : 'Generate some reports to see them here'
+              }
+            </div>
+          </div>
+        )}
+
         {/* Pagination */}
-        <div className="px-6 py-4 border-t flex items-center justify-between">
-          <div className="text-sm text-gray-700">
-            Showing <span className="font-medium">1</span> to <span className="font-medium">5</span> of{' '}
-            <span className="font-medium">24</span> results
+        {pagination.totalPages > 1 && (
+          <div className="px-6 py-4 border-t flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Showing <span className="font-medium">{reports.length}</span> of{' '}
+              <span className="font-medium">{pagination.totalReports}</span> reports
+            </div>
+            <div className="flex items-center gap-2">
+              <button 
+                className="px-3 py-1 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => handlePageChange(pagination.currentPage - 1)}
+                disabled={!pagination.hasPrev}
+              >
+                Previous
+              </button>
+              
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  className={`px-3 py-1 border rounded-lg text-sm ${
+                    page === pagination.currentPage 
+                      ? 'bg-blue-600 text-white' 
+                      : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => handlePageChange(page)}
+                >
+                  {page}
+                </button>
+              ))}
+              
+              <button 
+                className="px-3 py-1 border rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
+                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                disabled={!pagination.hasNext}
+              >
+                Next
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="px-3 py-1 border rounded-lg text-sm hover:bg-gray-50">Previous</button>
-            <button className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm">1</button>
-            <button className="px-3 py-1 border rounded-lg text-sm hover:bg-gray-50">2</button>
-            <button className="px-3 py-1 border rounded-lg text-sm hover:bg-gray-50">3</button>
-            <button className="px-3 py-1 border rounded-lg text-sm hover:bg-gray-50">Next</button>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
