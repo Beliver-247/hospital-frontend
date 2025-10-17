@@ -1,17 +1,19 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ProtectedRoute from './routes/ProtectedRoute.jsx';
-import AppLayout from './layout/AppLayout.jsx';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import ProtectedRoute from "./routes/ProtectedRoute.jsx";
+import AppLayout from "./layout/AppLayout.jsx";
 
-import Login from './pages/Login.jsx';
-import Dashboard from './pages/Dashboard.jsx';
-import PatientsNew from './pages/PatientsNew.jsx';
-import PatientsDetail from './pages/PatientsDetail.jsx';
-import PatientsEdit from './pages/PatientsEdit.jsx';
-import PatientsSearch from './pages/PatientsSearch.jsx';
-import ReportsLayout from './layout/ReportsLayout.jsx';
-import Reports from './pages/Reports.jsx';
-import ReportHistory from './pages/ReportHistory.jsx';
+import Login from "./pages/Login.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
+import PatientsNew from "./pages/PatientsNew.jsx";
+import PatientsDetail from "./pages/PatientsDetail.jsx";
+import PatientsEdit from "./pages/PatientsEdit.jsx";
+import PatientsSearch from "./pages/PatientsSearch.jsx";
+import ReportsLayout from "./layout/ReportsLayout.jsx";
+import Reports from "./pages/Reports.jsx";
+import ReportHistory from "./pages/ReportHistory.jsx";
+import DoctorsNew from "./pages/DoctorsNew.jsx";
+import DoctorsList from "./pages/DoctorsList.jsx";
 
 const qc = new QueryClient();
 
@@ -33,7 +35,26 @@ export default function App() {
             />
           </Route>
 
-          <Route element={<ProtectedRoute roles={['DOCTOR','STAFF']} />}>
+          <Route element={<ProtectedRoute roles={["STAFF"]} />}>
+            <Route
+              path="/doctors"
+              element={
+                <AppLayout>
+                  <DoctorsList />
+                </AppLayout>
+              }
+            />
+            <Route
+              path="/doctors/new"
+              element={
+                <AppLayout>
+                  <DoctorsNew />
+                </AppLayout>
+              }
+            />
+          </Route>
+
+          <Route element={<ProtectedRoute roles={["DOCTOR", "STAFF"]} />}>
             <Route
               path="/patients/new"
               element={
